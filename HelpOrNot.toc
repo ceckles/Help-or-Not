@@ -1,0 +1,34 @@
+## Interface: 11508, 11509, 16001, 20505, 20506, 50503, 50504, 120100, 120105
+## Title: |cff40ff59Help|r or |cffff3333Not|r
+## Notes: Mark players as Griefer, Rude, Annoying or Helpful. Block the bad ones and stamp them DO NOT HELP, or HELPFUL for the good ones, on nameplates and unit frames.
+## Author: Monger
+## Version: 1.0.0
+## Category: Chat
+## Category-deDE: Chat
+## Category-esES: Chat
+## Category-esMX: Chat
+## Category-frFR: Discussion
+## Category-itIT: Chat
+## Category-koKR: 대화
+## Category-ptBR: Bate-papo
+## Category-ruRU: Чат
+## Category-zhCN: 聊天
+## Category-zhTW: 對話
+## IconTexture: Interface\RaidFrame\ReadyCheck-NotReady
+## AddonCompartmentFunc: HelpOrNot_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: HelpOrNot_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: HelpOrNot_OnAddonCompartmentLeave
+## SavedVariables: HelpOrNotDB
+## OptionalDeps: EllesmereUI
+## X-License: All Rights Reserved
+
+Core.lua
+Visuals.lua
+Filters.lua
+Frames.lua
+Plates.lua
+Tooltip.lua
+Alerts.lua
+Menu.lua
+LFG.lua
+UI.lua
