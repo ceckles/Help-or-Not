@@ -2,7 +2,7 @@
 ## Title: |cff40ff59Help|r or |cffff3333Not|r
 ## Notes: Mark players as Griefer, Rude, Annoying or Helpful. Block the bad ones and stamp them DO NOT HELP, or HELPFUL for the good ones, on nameplates and unit frames.
 ## Author: Monger
-## Version: 1.0.0
+## Version: @project-version@
 ## Category: Chat
 ## Category-deDE: Chat
 ## Category-esES: Chat
