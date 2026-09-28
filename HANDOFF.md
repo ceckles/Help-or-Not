@@ -42,4 +42,4 @@ Code passes luac 5.1 syntax check and core logic was run against a stub. Never r
 7. `/hon test` marks yourself as Griefer to preview frame stamps.
 
 ## CurseForge
-Main category Chat & Communication; additional Unit Frames, Raid Frames, PvP. License All Rights Reserved. Source linked to GitHub, automatic packaging set to tagged commits (tag v1.0.0 for release, -beta suffix for beta). Webhook still needs adding in GitHub: `https://www.curseforge.com/api/projects/PROJECT_ID/package?token=TOKEN`. First file should be uploaded by hand for moderator review. Logo is an original split check/X PNG (not a Blizzard asset).
+Main category Chat & Communication; additional Unit Frames, Raid Frames, PvP. License All Rights Reserved. Source linked to GitHub, automatic packaging set to tagged commits (tag v1.0.0 for release, -beta suffix for beta). Webhook still needs adding in GitHub: `https://www.curseforge.com/api/projects/1715654/package?token=TOKEN`. First file should be uploaded by hand for moderator review. Logo is an original split check/X PNG (not a Blizzard asset).
