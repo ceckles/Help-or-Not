@@ -3,3 +3,4 @@ package-as: HelpOrNot
 ignore:
   - HANDOFF.md
   - .github
+  - .gitignore
