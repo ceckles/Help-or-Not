@@ -42,10 +42,26 @@ end
 ---------------------------------------------------------------------------
 -- Unit frame stamp (EllesmereUI, Blizzard, or anything with a unit attribute)
 ---------------------------------------------------------------------------
+-- Blizzard's Retail player/target/focus buttons are far bigger than their
+-- art (they cover the name row, portrait and buffs), so box the bars instead.
+local function barsOf(button)
+    local content = button.TargetFrameContent or button.PlayerFrameContent
+    local main = content and (content.TargetFrameContentMain or content.PlayerFrameContentMain)
+    local health = main and main.HealthBarsContainer
+    if not health then return nil end
+    return health, main.ManaBar or (main.ManaBarArea and main.ManaBarArea.ManaBar)
+end
+
 function ns.CreateFrameStamp(button)
     local s = CreateFrame("Frame", nil, button)
     s.HONSkip = true
-    s:SetAllPoints(button)
+    local health, mana = barsOf(button)
+    if health then
+        s:SetPoint("TOPLEFT", health, "TOPLEFT", -2, 2)
+        s:SetPoint("BOTTOMRIGHT", mana or health, "BOTTOMRIGHT", 2, -2)
+    else
+        s:SetAllPoints(button)
+    end
     s:SetFrameLevel(button:GetFrameLevel() + 25)
     s:EnableMouse(false)
 
@@ -87,7 +103,6 @@ function ns.CreatePlateStamp(plate)
     local s = CreateFrame("Frame", nil, plate)
     s.HONSkip = true
     s:SetSize(150, 50)
-    s:SetPoint("BOTTOM", plate, "TOP", 0, 2)
     s:SetFrameLevel(plate:GetFrameLevel() + 50)
     s:EnableMouse(false)
 
@@ -108,6 +123,23 @@ function ns.CreatePlateStamp(plate)
     addPulse(s)
     s:Hide()
     return s
+end
+
+-- The plate frame is much taller than what's drawn (friendly players are
+-- often just a name), so sit on the visible name, then the health bar,
+-- then the plate itself (EllesmereUI and other plate addons).
+function ns.AnchorPlateStamp(s, plate)
+    local uf, target = plate.UnitFrame, plate
+    if uf then
+        local health = uf.HealthBarsContainer or uf.healthBar
+        if uf.name and uf.name:IsVisible() then target = uf.name
+        elseif health and health:IsVisible() then target = health end
+    end
+    if s.anchor ~= target then
+        s:ClearAllPoints()
+        s:SetPoint("BOTTOM", target, "TOP", 0, 2)
+        s.anchor = target
+    end
 end
 
 function ns.StylePlateStamp(s, entry)

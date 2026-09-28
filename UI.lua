@@ -270,7 +270,7 @@ function ns.ToggleUI()
     frame:SetShown(not frame:IsShown())
 end
 
-ns.OnChange(ns.RefreshUI)
+ns.OnChange(ns.RefreshUI, "manager window")
 
 ---------------------------------------------------------------------------
 -- Slash commands
@@ -316,6 +316,9 @@ SlashCmdList.HELPORNOT = function(msg)
         ns.testMode = not ns.testMode
         ns.Print("Test mode " .. (ns.testMode and "on." or "off."))
         ns.Fire()
+    elseif cmd == "perf" then
+        ns.perf = not ns.perf
+        ns.Print("Perf timing " .. (ns.perf and "on. Mark someone and read the chat." or "off."))
     elseif cmd == "export" then
         StaticPopup_Show("HELPORNOT_EXPORT")
     elseif cmd == "import" then

@@ -79,6 +79,7 @@ local function update(unit)
 
     if entry and settings.plates then
         if not s then s = ns.CreatePlateStamp(plate); stamps[plate] = s end
+        ns.AnchorPlateStamp(s, plate)
         ns.StylePlateStamp(s, entry)
         s:Show()
     elseif s then
@@ -166,4 +167,9 @@ ns.OnLogin(ns.ApplyPlateMode)
 ns.On("PLAYER_ENTERING_WORLD", function() ns.ApplyPlateMode() end)
 ns.On("ZONE_CHANGED_NEW_AREA", function() ns.ApplyPlateMode() end)
 ns.On("PLAYER_REGEN_ENABLED", function() if pendingCVar then ns.ApplyPlateMode() end end)
-ns.OnChange(function() ns.ApplyPlateMode(); ns.RefreshPlates() end)
+ns.OnChange(function()
+    local t = ns.perf and debugprofilestop()
+    ns.ApplyPlateMode()
+    if t then ns.PerfLog("plate CVar", debugprofilestop() - t) end
+    ns.RefreshPlates()
+end, "nameplates")

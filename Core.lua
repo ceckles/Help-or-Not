@@ -174,11 +174,22 @@ end
 ---------------------------------------------------------------------------
 -- Change notification
 ---------------------------------------------------------------------------
-local listeners = {}
-function ns.OnChange(fn) listeners[#listeners + 1] = fn end
+local listeners, labels = {}, {}
+function ns.OnChange(fn, label)
+    listeners[#listeners + 1] = fn
+    labels[#listeners] = label or ("listener " .. #listeners)
+end
+
+-- /hon perf: prints how long each piece of a change takes.
+function ns.PerfLog(label, ms, extra)
+    if ns.perf then ns.Print(("perf %s: %.1f ms%s"):format(label, ms, extra or "")) end
+end
+
 function ns.Fire()
     for i = 1, #listeners do
+        local t = ns.perf and debugprofilestop()
         local ok, err = pcall(listeners[i])
+        if t then ns.PerfLog(labels[i], debugprofilestop() - t) end
         if not ok then geterrorhandler()(err) end
     end
 end
@@ -204,7 +215,9 @@ function ns.Add(name, realm, cat, note, class)
     end
     if class then e.class = class end
 
+    local t = ns.perf and debugprofilestop()
     ns.SyncIgnore(e)
+    if t then ns.PerfLog("SyncIgnore", debugprofilestop() - t) end
     ns.Print(("Marked %s as %s."):format(ns.DisplayName(e), ns.CatLabel(cat, true)))
     ns.Fire()
     return key, e

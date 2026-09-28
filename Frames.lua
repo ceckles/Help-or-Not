@@ -40,20 +40,50 @@ function ns.RefreshFrames()
     end
 end
 
-local function scan()
-    scheduled = false
-    if InCombatLockdown() then pending = true return end
-    pending = false
-    local f = EnumerateFrames()
+-- A full walk is ~10k frames on Retail and costs a couple hundred ms, so it
+-- runs in slices of BUDGET ms per rendered frame instead of all at once.
+-- Frames are never destroyed, so the cursor stays valid between slices.
+local BUDGET = 2
+local runner = CreateFrame("Frame")
+local cursor, scanning, again, count, spent, slices
+
+local function step()
+    if InCombatLockdown() then
+        runner:SetScript("OnUpdate", nil)
+        scanning, pending = false, true
+        return
+    end
+    local start = debugprofilestop()
+    local f = cursor or EnumerateFrames()
     while f do
+        count = count + 1
         local ok, yes = pcall(candidate, f)
         if ok and yes then tracked[f] = ns.CreateFrameStamp(f) end
         f = EnumerateFrames(f)
+        if debugprofilestop() - start > BUDGET then break end
     end
+    cursor = f
+    spent, slices = spent + (debugprofilestop() - start), slices + 1
+    if f then return end
+
+    runner:SetScript("OnUpdate", nil)
+    scanning = false
+    ns.PerfLog("frame scan", spent, (" (%d frames over %d slices)"):format(count, slices))
     ns.RefreshFrames()
+    if again then again = false; ns.ScheduleScan(1) end
+end
+
+local function scan()
+    scheduled = false
+    if InCombatLockdown() then pending = true return end
+    if scanning then return end
+    pending, scanning = false, true
+    cursor, count, spent, slices = nil, 0, 0, 0
+    runner:SetScript("OnUpdate", step)
 end
 
 function ns.ScheduleScan(delay)
+    if scanning then again = true return end
     if scheduled then return end
     scheduled = true
     C_Timer.After(delay or 1, scan)
@@ -69,4 +99,5 @@ ns.On("PLAYER_ENTERING_WORLD", function() ns.ScheduleScan(2) end)
 ns.On("PLAYER_REGEN_ENABLED", function() if pending then ns.ScheduleScan(0.5) end end)
 ns.On("PLAYER_TARGET_CHANGED", function() ns.RefreshFrames() end)
 ns.On("PLAYER_FOCUS_CHANGED", function() ns.RefreshFrames() end)
-ns.OnChange(function() ns.ScheduleScan(0.2); ns.RefreshFrames() end)
+-- Marking someone doesn't create frames, so just restyle the known ones.
+ns.OnChange(ns.RefreshFrames, "unit frames")
