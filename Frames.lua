@@ -69,6 +69,7 @@ local function step()
     runner:SetScript("OnUpdate", nil)
     scanning = false
     ns.PerfLog("frame scan", spent, (" (%d frames over %d slices)"):format(count, slices))
+    if ns.scanReport then ns.scanReport = false; ns.ReportFrames() end
     ns.RefreshFrames()
     if again then again = false; ns.ScheduleScan(1) end
 end
@@ -80,6 +81,24 @@ local function scan()
     pending, scanning = false, true
     cursor, count, spent, slices = nil, 0, 0, 0
     runner:SetScript("OnUpdate", step)
+end
+
+-- /hon scan: lists the unit frames we know about, grouped by unit.
+function ns.ReportFrames()
+    local total, byUnit = 0, {}
+    for btn in pairs(tracked) do
+        total = total + 1
+        local u = btn:GetAttribute("unit")
+        if u == "target" or u == "focus" or u == "player" then
+            byUnit[u] = byUnit[u] or {}
+            local name = btn:GetName() or "unnamed"
+            table.insert(byUnit[u], name .. (btn:IsVisible() and "" or " (hidden)"))
+        end
+    end
+    ns.Print(("Tracking %d unit frames."):format(total))
+    for _, u in ipairs({ "player", "target", "focus" }) do
+        ns.Print(("  %s: %s"):format(u, byUnit[u] and table.concat(byUnit[u], ", ") or "none"))
+    end
 end
 
 function ns.ScheduleScan(delay)

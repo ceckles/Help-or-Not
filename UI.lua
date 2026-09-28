@@ -280,6 +280,7 @@ local HELP = {
     "/hon add griefer/rude/annoying/helpful [Name-Realm] [note]  (no name = your target)",
     "/hon remove [Name-Realm]  (no name = your target)",
     "/hon list   /hon test   /hon export   /hon import",
+    "/hon perf (timing)   /hon scan (list tracked unit frames)",
 }
 
 SLASH_HELPORNOT1 = "/hon"
@@ -319,6 +320,11 @@ SlashCmdList.HELPORNOT = function(msg)
     elseif cmd == "perf" then
         ns.perf = not ns.perf
         ns.Print("Perf timing " .. (ns.perf and "on. Mark someone and read the chat." or "off."))
+    elseif cmd == "scan" then
+        ns.Print("Tracked before scan:")
+        ns.ReportFrames()
+        ns.scanReport = true
+        ns.ScheduleScan(0)
     elseif cmd == "export" then
         StaticPopup_Show("HELPORNOT_EXPORT")
     elseif cmd == "import" then
