@@ -18,3 +18,6 @@ $RECYCLE.BIN/
 # Local tooling
 .claude/
 *.log
+
+# Local notes
+HANDOFF.md
