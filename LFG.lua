@@ -29,7 +29,7 @@ local function tag(frame, entry)
     local r, g, b = ns.Color(entry.cat)
     t.bg:SetVertexColor(r, g, b, ns.IsGood(entry.cat) and 0.14 or 0.22)
     t.text:SetTextColor(r, g, b)
-    t.text:SetText(ns.IsGood(entry.cat) and "HELPFUL" or ("DO NOT HELP: " .. ns.CatLabel(entry.cat):upper()))
+    t.text:SetText(ns.TagText(entry.cat):upper())
     t:Show()
 end
 

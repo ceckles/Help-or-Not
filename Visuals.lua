@@ -1,7 +1,6 @@
 local _, ns = ...
 
 local ICON = "Interface\\RaidFrame\\ReadyCheck-NotReady"
-local ICON_GOOD = "Interface\\RaidFrame\\ReadyCheck-Ready"
 local FLAT = "Interface\\Buttons\\WHITE8X8"
 local FONT = STANDARD_TEXT_FONT
 
@@ -90,10 +89,10 @@ function ns.StyleStamp(s, entry)
     local good = ns.IsGood(entry.cat)
     s.tint:SetVertexColor(r, g, b, good and 0.12 or 0.28)
     for i = 1, #s.edges do s.edges[i]:SetVertexColor(r, g, b, 1) end
-    s.icon:SetTexture(good and ICON_GOOD or ICON)
+    s.icon:SetTexture(ns.Icon(entry.cat))
     s.text:SetText(ns.StampText(entry.cat))
     s.text:SetTextColor(r, g, b)
-    setPulse(s, entry.cat == "griefer")
+    setPulse(s, ns.Pulses(entry.cat))
 end
 
 ---------------------------------------------------------------------------
@@ -144,13 +143,14 @@ end
 
 function ns.StylePlateStamp(s, entry)
     local r, g, b = ns.Color(entry.cat)
-    local good = ns.IsGood(entry.cat)
-    s.icon:SetTexture(good and ICON_GOOD or ICON)
+    -- KOS and Helpful stamps already name the category.
+    local named = ns.CATEGORIES[entry.cat] and ns.CATEGORIES[entry.cat].stamp
+    s.icon:SetTexture(ns.Icon(entry.cat))
     s.text:SetText(ns.StampText(entry.cat))
     s.text:SetTextColor(r, g, b)
     s.sub:SetTextColor(r, g, b)
-    s.sub:SetText(good and "" or ns.CatLabel(entry.cat):upper())
-    setPulse(s, entry.cat == "griefer")
+    s.sub:SetText(named and "" or ns.CatLabel(entry.cat):upper())
+    setPulse(s, ns.Pulses(entry.cat))
 end
 
 ---------------------------------------------------------------------------
@@ -197,7 +197,7 @@ function ns.ShowBanner(entry)
     local r, g, b2 = ns.Color(entry.cat)
     b.title:SetTextColor(r, g, b2)
     b.title:SetText(ns.StampText(entry.cat))
-    b.icon:SetTexture(ns.IsGood(entry.cat) and ICON_GOOD or ICON)
+    b.icon:SetTexture(ns.Icon(entry.cat))
     local sub = ns.DisplayName(entry) .. " (" .. ns.CatLabel(entry.cat) .. ")"
     if entry.note and entry.note ~= "" then sub = sub .. ": " .. entry.note end
     b.sub:SetText(sub)

@@ -21,13 +21,13 @@ end
 
 local function muteFilter(_, _, _, author)
     local e = entryFor(author)
-    if e and e.flags.mute then return true end
+    if e and e.flags.mute and ns.db.settings.blockChat then return true end
     return false
 end
 
 local function whisperFilter(_, _, _, author)
     local e, key = entryFor(author)
-    if e and e.flags.whisper then
+    if e and e.flags.whisper and ns.db.settings.blockWhispers then
         ns.Notice(key, "whisper", ("Hid a whisper from %s."):format(ns.DisplayName(e)))
         return true
     end
@@ -48,7 +48,7 @@ end)
 -- Trades open straight to the window, so cancel on show. Trade partner is unit "NPC".
 ns.On("TRADE_SHOW", function()
     local e, key = ns.GetUnit("NPC")
-    if e and e ~= ns.TEST_ENTRY and e.flags.trade then
+    if e and e ~= ns.TEST_ENTRY and e.flags.trade and ns.db.settings.blockTrades then
         CancelTrade()
         ns.Notice(key, "trade", ("Blocked trade from %s."):format(ns.DisplayName(e)))
     end
@@ -56,7 +56,7 @@ end)
 
 ns.On("PARTY_INVITE_REQUEST", function(_, name)
     local e, key = entryFor(name)
-    if e and e.flags.invite then
+    if e and e.flags.invite and ns.db.settings.blockInvites then
         DeclineGroup()
         hidePopup("PARTY_INVITE")
         ns.Notice(key, "invite", ("Declined group invite from %s."):format(ns.DisplayName(e)))
@@ -65,7 +65,7 @@ end)
 
 ns.On("GUILD_INVITE_REQUEST", function(_, inviter)
     local e, key = entryFor(inviter)
-    if e and e.flags.invite then
+    if e and e.flags.invite and ns.db.settings.blockInvites then
         DeclineGuild()
         hidePopup("GUILD_INVITE")
         ns.Notice(key, "guild", ("Declined guild invite from %s."):format(ns.DisplayName(e)))
@@ -74,7 +74,7 @@ end)
 
 ns.On("DUEL_REQUESTED", function(_, name)
     local e, key = entryFor(name)
-    if e and e.flags.duel then
+    if e and e.flags.duel and ns.db.settings.blockDuels then
         CancelDuel()
         hidePopup("DUEL_REQUESTED")
         ns.Notice(key, "duel", ("Declined duel from %s."):format(ns.DisplayName(e)))

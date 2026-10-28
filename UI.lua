@@ -80,7 +80,9 @@ local function createRow(i)
         for j, c in ipairs(ns.CATEGORY_ORDER) do if c == e.cat then idx = j end end
         ns.SetCategory(r.key, ns.CATEGORY_ORDER[idx % #ns.CATEGORY_ORDER + 1])
     end)
-    tip(r.cat, "Category", "Click to cycle Griefer, Rude, Annoying, Helpful.")
+    local cycle = {}
+    for j, c in ipairs(ns.CATEGORY_ORDER) do cycle[j] = ns.CatLabel(c) end
+    tip(r.cat, "Category", "Click to cycle " .. table.concat(cycle, ", ") .. ".")
 
     r.checks = {}
     for j, flag in ipairs(ns.FLAG_ORDER) do
@@ -104,7 +106,11 @@ local function createRow(i)
         local e = ns.db.players[r.key]
         if not e then return "" end
         local added = e.added and date("%Y-%m-%d", e.added) or "?"
-        return ((e.note ~= "" and e.note) or "(none)") .. "\n|cff888888Added " .. added .. "|r"
+        local text = ((e.note ~= "" and e.note) or "(none)") .. "\n|cff888888Added " .. added .. "|r"
+        if e.seen then
+            text = text .. "\n|cff888888Last seen " .. date("%Y-%m-%d %H:%M", e.seen) .. (e.seenZone and (" in " .. e.seenZone) or "") .. "|r"
+        end
+        return text
     end)
 
     r.del = CreateFrame("Button", nil, r, "UIPanelCloseButton")
@@ -163,6 +169,8 @@ local function button(parent, text, w, onClick)
     return b
 end
 
+local optionChecks = {}
+
 local function settingCheck(parent, key, label, tipText)
     local cb = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     cb:SetSize(22, 22)
@@ -170,13 +178,55 @@ local function settingCheck(parent, key, label, tipText)
     fs:SetPoint("LEFT", cb, "RIGHT", 1, 0)
     fs:SetText(label)
     cb.label = fs
+    cb.key = key
     cb:SetScript("OnShow", function(self) self:SetChecked(ns.db.settings[key]) end)
     cb:SetScript("OnClick", function(self)
         ns.db.settings[key] = self:GetChecked() and true or false
         ns.Fire()
     end)
     tip(cb, label, tipText)
+    optionChecks[#optionChecks + 1] = cb
     return cb
+end
+
+local OPTIONS = {
+    { "Display", {
+        { "plates", "Nameplates", "Stamp marked players above their nameplates." },
+        { "markedOnly", "Marked only", "Turns friendly player nameplates on for you, then hides every one except the players you've marked. No more Shift+V. Inside dungeons and raids your own nameplate setting is put back, since addons can't touch friendly plates there." },
+        { "frames", "Unit frames", "Tint and border marked players on party, raid, target and focus frames (EllesmereUI or Blizzard)." },
+        { "tooltip", "Tooltip", "Add a DO NOT HELP, KILL ON SIGHT or Helpful line to their tooltip." },
+        { "lfg", "Group Finder", "Tag marked leaders and applicants. Takes effect after /reload if turned on." },
+        { "showHelpful", "Helpful stamps", "Stamp Helpful players on nameplates and unit frames. Off means only bad and KOS players get stamped." },
+        { "pulse", "Pulse", "Griefer and KOS stamps pulse so they stand out." },
+    } },
+    { "Alerts", {
+        { "groupAlert", "Group alert", "Raid warning when a marked player is in your group." },
+        { "targetAlert", "Target banner", "Big banner when you target a marked player." },
+        { "kosAlert", "KOS sightings", "Raid warning when a KOS player's nameplate shows up near you, once a minute per player. When and where you last saw them is recorded either way." },
+        { "sound", "Sound", "Play the raid warning sound with alerts." },
+        { "notices", "Block notices", "Print a chat line when a trade, invite, duel or whisper is blocked." },
+    } },
+    { "Blocking", {
+        { "blockChat", "Chat mute", "Hide chat from players with Mute checked." },
+        { "blockWhispers", "Whispers", "Hide whispers from players with Whisp checked." },
+        { "blockTrades", "Trades", "Cancel trades from players with Trade checked." },
+        { "blockInvites", "Invites", "Decline group and guild invites from players with Inv checked." },
+        { "blockDuels", "Duels", "Decline duels from players with Duel checked." },
+    } },
+    { "Other", {
+        { "menu", "Right-click menu", "Add Help or Not to player right-click menus." },
+    } },
+}
+
+local function setView(view)
+    frame.listView:SetShown(view == "list")
+    frame.optionsView:SetShown(view == "options")
+    frame.viewBtn:SetText(view == "list" and "Options" or "List")
+    if view == "options" then
+        for _, cb in ipairs(optionChecks) do cb:SetChecked(ns.db.settings[cb.key]) end
+    else
+        ns.RefreshUI()
+    end
 end
 
 local function build()
@@ -203,17 +253,21 @@ local function build()
     frame.count = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     frame.count:SetPoint("TOPLEFT", 14, -32)
 
+    local list = CreateFrame("Frame", nil, frame)
+    list:SetAllPoints()
+    frame.listView = list
+
     local headers = { { "Player", COL.name }, { "Category", COL.cat + 8 }, { "Note", COL.note } }
     for j, flag in ipairs(ns.FLAG_ORDER) do headers[#headers + 1] = { ns.FLAG_LABELS[flag], COL.flags + (j - 1) * COL.flagStep } end
     for _, h in ipairs(headers) do
-        local fs = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        local fs = list:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         fs:SetPoint("TOPLEFT", 14 + h[2], -58)
         fs:SetText(h[1])
     end
 
-    local scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
+    local scroll = CreateFrame("ScrollFrame", nil, list, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 12, -74)
-    scroll:SetPoint("BOTTOMRIGHT", -32, 114)
+    scroll:SetPoint("BOTTOMRIGHT", -32, 56)
     scrollChild = CreateFrame("Frame", nil, scroll)
     scrollChild:SetSize(ROW_W, 1)
     scroll:SetScrollChild(scrollChild)
@@ -222,16 +276,41 @@ local function build()
     emptyText:SetPoint("TOP", scroll, "TOP", 0, -40)
     emptyText:SetText("Nobody flagged yet. Right-click a player, or target one and use the buttons below.")
 
-    -- Row 1: flag target
-    local lbl = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    lbl:SetPoint("BOTTOMLEFT", 16, 90)
+    local lbl = list:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    lbl:SetPoint("BOTTOMLEFT", 16, 26)
     lbl:SetText("Mark target as:")
     local prev = lbl
     for _, c in ipairs(ns.CATEGORY_ORDER) do
-        local b = button(frame, ns.CatLabel(c, true), 80, function() ns.PromptAddUnit("target", c) end)
+        local b = button(list, ns.CatLabel(c, true), 80, function() ns.PromptAddUnit("target", c) end)
         b:SetPoint("LEFT", prev, "RIGHT", 8, 0)
         prev = b
     end
+
+    -- Options view: one column per section.
+    local opts = CreateFrame("Frame", nil, frame)
+    opts:SetAllPoints()
+    opts:Hide()
+    frame.optionsView = opts
+    for i, section in ipairs(OPTIONS) do
+        local x = 18 + (i - 1) * 168
+        local head = opts:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        head:SetPoint("TOPLEFT", x, -62)
+        head:SetText(section[1])
+        for j, s in ipairs(section[2]) do
+            local cb = settingCheck(opts, s[1], s[2], s[3])
+            cb:SetPoint("TOPLEFT", x - 4, -80 - (j - 1) * 24)
+        end
+    end
+    local foot = opts:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    foot:SetPoint("BOTTOMLEFT", 18, 24)
+    foot:SetPoint("BOTTOMRIGHT", -18, 24)
+    foot:SetJustifyH("LEFT")
+    foot:SetText("Blocking switches turn a kind of block off for everyone. The checkboxes on each player still decide who gets blocked while it's on.")
+
+    frame.viewBtn = button(frame, "Options", 80, function()
+        setView(frame.optionsView:IsShown() and "list" or "options")
+    end)
+    frame.viewBtn:SetPoint("TOPRIGHT", -290, -28)
     local test = button(frame, "Test Mode", 90, function()
         ns.testMode = not ns.testMode
         ns.Print("Test mode " .. (ns.testMode and "on: you now show as a Griefer on your own frames." or "off."))
@@ -243,24 +322,6 @@ local function build()
     local exp = button(frame, "Export", 80, function() StaticPopup_Show("HELPORNOT_EXPORT") end)
     exp:SetPoint("TOPRIGHT", -14, -28)
 
-    -- Rows 2-3: settings
-    local settings = {
-        { "plates", "Nameplates", "Stamp DO NOT HELP or HELPFUL above marked players' nameplates." },
-        { "markedOnly", "Marked only", "Turns friendly player nameplates on for you, then hides every one except the players you've marked. No more Shift+V. Inside dungeons and raids your own nameplate setting is put back, since addons can't touch friendly plates there." },
-        { "frames", "Unit frames", "Tint and border flagged players on party, raid, target and focus frames (EllesmereUI or Blizzard)." },
-        { "tooltip", "Tooltip", "Add a DO NOT HELP or HELPFUL line to their tooltip." },
-        { "lfg", "Group Finder", "Tag flagged leaders and applicants. Takes effect after /reload if turned on." },
-        { "groupAlert", "Group alert", "Raid warning when a flagged player is in your group." },
-        { "targetAlert", "Target banner", "Big banner when you target a flagged player." },
-        { "sound", "Sound", "Play the raid warning sound with alerts." },
-        { "notices", "Block notices", "Print a chat line when a trade, invite, duel or whisper is blocked." },
-    }
-    for i, s in ipairs(settings) do
-        local cb = settingCheck(frame, s[1], s[2], s[3])
-        local col, row = (i - 1) % 4, math.floor((i - 1) / 4)
-        cb:SetPoint("BOTTOMLEFT", 14 + col * 165, 60 - row * 23)
-    end
-
     frame:SetScript("OnShow", ns.RefreshUI)
     frame:Hide()
 end
@@ -270,6 +331,40 @@ function ns.ToggleUI()
     frame:SetShown(not frame:IsShown())
 end
 
+function ns.ShowOptions()
+    if not frame then build() end
+    frame:Show()
+    setView("options")
+end
+
+---------------------------------------------------------------------------
+-- Entry in Blizzard's AddOns options (Settings on Retail and Forever,
+-- Interface Options on older Classic builds). It just opens our window.
+---------------------------------------------------------------------------
+ns.OnLogin(function()
+    local panel = CreateFrame("Frame")
+    panel.name = "Help or Not"
+    local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText("|cff40ff59Help|r or |cffff3333Not|r")
+    local desc = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
+    desc:SetText("Options live in the Help or Not window. You can also type /hon options.")
+    local open = button(panel, "Open options", 140, function()
+        if SettingsPanel and SettingsPanel:IsShown() then HideUIPanel(SettingsPanel) end
+        if InterfaceOptionsFrame and InterfaceOptionsFrame:IsShown() then HideUIPanel(InterfaceOptionsFrame) end
+        if GameMenuFrame and GameMenuFrame:IsShown() then HideUIPanel(GameMenuFrame) end
+        ns.ShowOptions()
+    end)
+    open:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -12)
+
+    if Settings and Settings.RegisterCanvasLayoutCategory and Settings.RegisterAddOnCategory then
+        Settings.RegisterAddOnCategory(Settings.RegisterCanvasLayoutCategory(panel, panel.name))
+    elseif InterfaceOptions_AddCategory then
+        InterfaceOptions_AddCategory(panel)
+    end
+end)
+
 ns.OnChange(ns.RefreshUI, "manager window")
 
 ---------------------------------------------------------------------------
@@ -277,9 +372,9 @@ ns.OnChange(ns.RefreshUI, "manager window")
 ---------------------------------------------------------------------------
 local HELP = {
     "/hon  open the list",
-    "/hon add griefer/rude/annoying/helpful [Name-Realm] [note]  (no name = your target)",
+    "/hon add griefer/rude/annoying/kos/helpful [Name-Realm] [note]  (no name = your target)",
     "/hon remove [Name-Realm]  (no name = your target)",
-    "/hon list   /hon test   /hon export   /hon import",
+    "/hon options   /hon list   /hon test   /hon export   /hon import",
     "/hon perf (timing)   /hon scan (list tracked unit frames)",
 }
 
@@ -292,6 +387,8 @@ SlashCmdList.HELPORNOT = function(msg)
 
     if cmd == "" then
         ns.ToggleUI()
+    elseif cmd == "options" or cmd == "config" or cmd == "settings" then
+        ns.ShowOptions()
     elseif cmd == "add" then
         local cat, target, note = rest:match("^(%S+)%s*(%S*)%s*(.*)$")
         cat = cat and cat:lower()

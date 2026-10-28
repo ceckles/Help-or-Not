@@ -1,6 +1,6 @@
 # Help or Not
 
-Mark players as Griefer, Rude, Annoying or Helpful. Block the bad ones' chat, whispers, trades, group/guild invites and duels, and stamp them DO NOT HELP (or HELPFUL) on nameplates, unit frames (EllesmereUI or Blizzard), tooltips and Group Finder.
+Mark players as Griefer, Rude, Annoying, KOS or Helpful. Block the bad ones' chat, whispers, trades, group/guild invites and duels, and stamp them DO NOT HELP (or KILL ON SIGHT, or HELPFUL) on nameplates, unit frames (EllesmereUI or Blizzard), tooltips and Group Finder.
 
 Clients: Retail 12.1, WoW Forever 1.60.1, Classic Era, TBC Anniversary, MoP Classic.
 
@@ -12,6 +12,8 @@ Drop the `HelpOrNot` folder into each client's `Interface/AddOns`. Lists are sav
 - Or target them: `/hon add griefer [note]`
 - `/hon` opens the list: change category, toggle blocks per player, remove
 - Helpful players get a green HELPFUL stamp, no blocks, and a quiet chat line when they join your group
+- KOS (kill on sight) is for your PvP nemesis list: a purple skull KILL ON SIGHT stamp, a raid warning when their nameplate shows up near you, and a last seen time and zone in their tooltip
+- `/hon options` (or the Options button, or Esc > Options > AddOns > Help or Not) turns any feature on or off: stamps, alerts, KOS sightings, each kind of block, and the right-click menu
 - `/hon test` marks yourself as a Griefer temporarily so you can see the stamps
 
 ## Limits

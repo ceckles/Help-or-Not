@@ -77,7 +77,7 @@ local function update(unit)
     local entry = ns.GetUnit(unit)
     local s = stamps[plate]
 
-    if entry and settings.plates then
+    if entry and settings.plates and ns.ShowsStamp(entry.cat) then
         if not s then s = ns.CreatePlateStamp(plate); stamps[plate] = s end
         ns.AnchorPlateStamp(s, plate)
         ns.StylePlateStamp(s, entry)

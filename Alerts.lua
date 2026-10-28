@@ -42,9 +42,34 @@ end
 ns.On("GROUP_ROSTER_UPDATE", checkGroup)
 ns.OnLogin(function() C_Timer.After(5, checkGroup) end)
 
+---------------------------------------------------------------------------
+-- KOS sightings: a KOS player's nameplate showing up (or targeting them)
+-- records when and where, and plates raise an alert once a minute.
+---------------------------------------------------------------------------
+local lastSighting = {}
+
+local function recordSeen(entry)
+    entry.seen = time()
+    local ok, zone = pcall(GetRealZoneText)
+    if ok and type(zone) == "string" and zone ~= "" and not ns.IsSecret(zone) then entry.seenZone = zone end
+end
+
+ns.On("NAME_PLATE_UNIT_ADDED", function(_, unit)
+    if type(unit) ~= "string" or ns.IsSecret(unit) then return end
+    local entry, key = ns.GetUnit(unit)
+    if not entry or entry == ns.TEST_ENTRY or not ns.IsKOS(entry.cat) then return end
+    recordSeen(entry)
+    if not ns.db.settings.kosAlert then return end
+    local now = GetTime()
+    if lastSighting[key] and now - lastSighting[key] < 60 then return end
+    lastSighting[key] = now
+    ns.Alert(entry, "spotted nearby.")
+end)
+
 ns.On("PLAYER_TARGET_CHANGED", function()
-    if not ns.db.settings.targetAlert then return end
     local entry, key = ns.GetUnit("target")
+    if entry and entry ~= ns.TEST_ENTRY and ns.IsKOS(entry.cat) then recordSeen(entry) end
+    if not ns.db.settings.targetAlert then return end
     if not entry or ns.IsGood(entry.cat) then return end
     local now = GetTime()
     if lastTarget[key] and now - lastTarget[key] < 10 then return end

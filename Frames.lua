@@ -31,7 +31,7 @@ function ns.RefreshFrames()
             local u = btn:GetAttribute("unit")
             if type(u) == "string" then entry = ns.GetUnit(u) end
         end
-        if entry then
+        if entry and ns.ShowsStamp(entry.cat) then
             ns.StyleStamp(stamp, entry)
             stamp:Show()
         else

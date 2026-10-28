@@ -13,12 +13,14 @@ end
 -- Categories and per-player block flags
 ---------------------------------------------------------------------------
 ns.CATEGORIES = {
-    griefer  = { label = "Griefer",  color = { 1.00, 0.15, 0.15 }, order = 1 },
+    griefer  = { label = "Griefer",  color = { 1.00, 0.15, 0.15 }, order = 1, pulse = true },
     rude     = { label = "Rude",     color = { 1.00, 0.50, 0.10 }, order = 2 },
     annoying = { label = "Annoying", color = { 1.00, 0.85, 0.10 }, order = 3 },
-    helpful  = { label = "Helpful",  color = { 0.25, 1.00, 0.35 }, order = 4, good = true },
+    -- Kill on sight: PvP nemesis list. Not blocked by default, just hunted.
+    kos      = { label = "KOS",      color = { 0.75, 0.30, 1.00 }, order = 4, pulse = true, kos = true, stamp = "KILL ON SIGHT" },
+    helpful  = { label = "Helpful",  color = { 0.25, 1.00, 0.35 }, order = 5, good = true, stamp = "HELPFUL" },
 }
-ns.CATEGORY_ORDER = { "griefer", "rude", "annoying", "helpful" }
+ns.CATEGORY_ORDER = { "griefer", "rude", "annoying", "kos", "helpful" }
 
 ns.FLAG_ORDER  = { "mute", "whisper", "trade", "invite", "duel", "ignore" }
 ns.FLAG_LABELS = { mute = "Mute", whisper = "Whisp", trade = "Trade", invite = "Inv", duel = "Duel", ignore = "Ignore" }
@@ -35,12 +37,16 @@ ns.DEFAULT_FLAGS = {
     griefer  = { mute = true, whisper = true,  trade = true, invite = true, duel = true, ignore = false },
     rude     = { mute = true, whisper = true,  trade = true, invite = true, duel = true, ignore = false },
     annoying = { mute = true, whisper = false, trade = true, invite = true, duel = true, ignore = false },
+    kos      = { mute = false, whisper = false, trade = true, invite = true, duel = false, ignore = false },
     helpful  = { mute = false, whisper = false, trade = false, invite = false, duel = false, ignore = false },
 }
 
 local SETTINGS_DEFAULTS = {
     plates = true, markedOnly = true, frames = true, tooltip = true, lfg = true,
-    groupAlert = true, targetAlert = true, sound = true, notices = true,
+    showHelpful = true, pulse = true,
+    groupAlert = true, targetAlert = true, kosAlert = true, sound = true, notices = true,
+    blockChat = true, blockWhispers = true, blockTrades = true, blockInvites = true, blockDuels = true,
+    menu = true,
 }
 
 ns.TEST_ENTRY = { name = "You", realm = "", cat = "griefer", note = "Test mode", flags = {} }
@@ -67,8 +73,42 @@ function ns.IsGood(cat)
     return c and c.good or false
 end
 
+function ns.IsKOS(cat)
+    local c = ns.CATEGORIES[cat]
+    return c and c.kos or false
+end
+
 function ns.StampText(cat)
-    return ns.IsGood(cat) and "HELPFUL" or "DO NOT HELP"
+    local c = ns.CATEGORIES[cat]
+    return c and c.stamp or "DO NOT HELP"
+end
+
+-- One line tag for tooltips and Group Finder: "HELPFUL", "KILL ON SIGHT", "DO NOT HELP: Rude".
+function ns.TagText(cat)
+    local c = ns.CATEGORIES[cat]
+    if c and c.stamp then return c.stamp end
+    return "DO NOT HELP: " .. ns.CatLabel(cat)
+end
+
+local ICONS = {
+    bad  = "Interface\\RaidFrame\\ReadyCheck-NotReady",
+    good = "Interface\\RaidFrame\\ReadyCheck-Ready",
+    kos  = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_8",
+}
+function ns.Icon(cat)
+    if ns.IsGood(cat) then return ICONS.good end
+    if ns.IsKOS(cat) then return ICONS.kos end
+    return ICONS.bad
+end
+
+function ns.Pulses(cat)
+    local c = ns.CATEGORIES[cat]
+    return (c and c.pulse and ns.db.settings.pulse) and true or false
+end
+
+-- Helpful stamps can be turned off; bad and KOS stamps always draw.
+function ns.ShowsStamp(cat)
+    return ns.db.settings.showHelpful or not ns.IsGood(cat)
 end
 
 function ns.CatLabel(cat, colored)

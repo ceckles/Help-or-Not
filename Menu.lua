@@ -53,7 +53,7 @@ local TAGS = {
 }
 
 local function build(_, root, ctx)
-    if not ctx then return end
+    if not ctx or not ns.db.settings.menu then return end
     local name, realm, class = ctx.name, ctx.server, nil
     if ctx.unit and not ns.IsSecret(ctx.unit) then
         if not ns.UnitKey(ctx.unit) then return end
