@@ -44,9 +44,9 @@ ns.DEFAULT_FLAGS = {
 local SETTINGS_DEFAULTS = {
     plates = true, markedOnly = true, frames = true, tooltip = true, lfg = true,
     showHelpful = true, pulse = true,
-    groupAlert = true, targetAlert = true, kosAlert = true, sound = true, notices = true,
+    groupAlert = true, targetAlert = true, kosAlert = true, kosKills = true, sound = true, notices = true,
     blockChat = true, blockWhispers = true, blockTrades = true, blockInvites = true, blockDuels = true,
-    menu = true,
+    menu = true, recent = true,
 }
 
 ns.TEST_ENTRY = { name = "You", realm = "", cat = "griefer", note = "Test mode", flags = {} }
@@ -379,6 +379,7 @@ ns.On("ADDON_LOADED", function(_, name)
     local db = HelpOrNotDB
     db.version = db.version or 1
     db.players = db.players or {}
+    db.recent = db.recent or {}
     db.settings = db.settings or {}
     for k, v in pairs(SETTINGS_DEFAULTS) do
         if db.settings[k] == nil then db.settings[k] = v end

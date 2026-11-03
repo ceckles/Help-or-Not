@@ -110,6 +110,9 @@ local function createRow(i)
         if e.seen then
             text = text .. "\n|cff888888Last seen " .. date("%Y-%m-%d %H:%M", e.seen) .. (e.seenZone and (" in " .. e.seenZone) or "") .. "|r"
         end
+        if e.kills then
+            text = text .. "\n|cff888888Killed " .. e.kills .. (e.kills == 1 and " time" or " times") .. ", last " .. date("%Y-%m-%d", e.lastKill) .. "|r"
+        end
         return text
     end)
 
@@ -135,8 +138,7 @@ local function sortedKeys()
     return keys
 end
 
-function ns.RefreshUI()
-    if not frame or not frame:IsShown() then return end
+local function refreshList()
     local keys = sortedKeys()
     for i, key in ipairs(keys) do
         local r = rows[i] or createRow(i)
@@ -156,6 +158,93 @@ function ns.RefreshUI()
     scrollChild:SetHeight(math.max(1, #keys * ROW_H))
     emptyText:SetShown(#keys == 0)
     frame.count:SetText(("%d flagged"):format(#keys))
+end
+
+---------------------------------------------------------------------------
+-- Recent players rows
+---------------------------------------------------------------------------
+local RCOL = { name = 8, zone = 144, when = 282, mark = 356, markStep = 56 }
+local recentChild, recentEmpty
+local recentRows = {}
+
+local function ago(t)
+    local s = time() - (t or 0)
+    if s < 3600 then return ("%dm ago"):format(math.max(1, math.floor(s / 60))) end
+    if s < 86400 then return ("%dh ago"):format(math.floor(s / 3600)) end
+    return ("%dd ago"):format(math.floor(s / 86400))
+end
+
+local function createRecentRow(i)
+    local r = CreateFrame("Frame", nil, recentChild)
+    r:SetSize(ROW_W, ROW_H)
+    r:SetPoint("TOPLEFT", 0, -(i - 1) * ROW_H)
+
+    r.bg = r:CreateTexture(nil, "BACKGROUND")
+    r.bg:SetAllPoints()
+    r.bg:SetTexture(FLAT)
+
+    local function text(x, w, font)
+        local fs = r:CreateFontString(nil, "OVERLAY", font)
+        fs:SetPoint("LEFT", x, 0)
+        fs:SetWidth(w)
+        fs:SetJustifyH("LEFT")
+        fs:SetWordWrap(false)
+        return fs
+    end
+    r.name = text(RCOL.name, RCOL.zone - RCOL.name - 6, "GameFontHighlight")
+    r.zone = text(RCOL.zone, RCOL.when - RCOL.zone - 6, "GameFontDisableSmall")
+    r.when = text(RCOL.when, RCOL.mark - RCOL.when - 6, "GameFontDisableSmall")
+
+    for j, c in ipairs(ns.CATEGORY_ORDER) do
+        local b = CreateFrame("Button", nil, r, "UIPanelButtonTemplate")
+        b:SetSize(RCOL.markStep - 2, 20)
+        b:SetPoint("LEFT", RCOL.mark + (j - 1) * RCOL.markStep, 0)
+        b:SetNormalFontObject("GameFontNormalSmall")
+        b:SetHighlightFontObject("GameFontHighlightSmall")
+        b:SetText(ns.CatLabel(c, true))
+        b:SetScript("OnClick", function()
+            local e = r.entry
+            if e then ns.PromptAdd(e.name, e.realm, c, e.class) end
+        end)
+        tip(b, "Mark as " .. ns.CatLabel(c), "Opens the note prompt. Already marked players just change category.")
+    end
+
+    recentRows[i] = r
+    return r
+end
+
+local function refreshRecent()
+    local list = ns.db.recent
+    for i, e in ipairs(list) do
+        local r = recentRows[i] or createRecentRow(i)
+        r.entry = e
+        local marked = ns.Get(e.key)
+        if marked then
+            local cr, cg, cb = ns.Color(marked.cat)
+            r.bg:SetVertexColor(cr, cg, cb, 0.18)
+        else
+            r.bg:SetVertexColor(1, 1, 1, (i % 2 == 0) and 0.06 or 0.02)
+        end
+        local cc = e.class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[e.class]
+        local name = ns.DisplayName(e)
+        if marked then name = name .. "  |c" .. ns.ColorHex(marked.cat) .. "(" .. ns.CatLabel(marked.cat) .. ")|r" end
+        r.name:SetText(name)
+        if cc then r.name:SetTextColor(cc.r, cc.g, cc.b) else r.name:SetTextColor(1, 1, 1) end
+        r.zone:SetText(e.zone or "")
+        r.when:SetText(ago(e.t))
+        r:Show()
+    end
+    for i = #list + 1, #recentRows do recentRows[i]:Hide() end
+    recentChild:SetHeight(math.max(1, #list * ROW_H))
+    recentEmpty:SetText(ns.db.settings.recent and "Nobody yet. People you group with show up here." or "Recent players is turned off in Options.")
+    recentEmpty:SetShown(#list == 0)
+    frame.count:SetText(("%d recent"):format(#list))
+end
+
+function ns.RefreshUI()
+    if not frame or not frame:IsShown() then return end
+    if frame.recentView:IsShown() then refreshRecent()
+    elseif frame.listView:IsShown() then refreshList() end
 end
 
 ---------------------------------------------------------------------------
@@ -203,6 +292,7 @@ local OPTIONS = {
         { "groupAlert", "Group alert", "Raid warning when a marked player is in your group." },
         { "targetAlert", "Target banner", "Big banner when you target a marked player." },
         { "kosAlert", "KOS sightings", "Raid warning when a KOS player's nameplate shows up near you, once a minute per player. When and where you last saw them is recorded either way." },
+        { "kosKills", "KOS kills", "Count killing blows on KOS players by you or your group and show the tally in their tooltip. Uses the combat log, so it only counts on clients that let addons read it." },
         { "sound", "Sound", "Play the raid warning sound with alerts." },
         { "notices", "Block notices", "Print a chat line when a trade, invite, duel or whisper is blocked." },
     } },
@@ -215,13 +305,16 @@ local OPTIONS = {
     } },
     { "Other", {
         { "menu", "Right-click menu", "Add Help or Not to player right-click menus." },
+        { "recent", "Recent players", "Remember the last 50 people you grouped with, so you can mark them after they leave." },
     } },
 }
 
 local function setView(view)
     frame.listView:SetShown(view == "list")
+    frame.recentView:SetShown(view == "recent")
     frame.optionsView:SetShown(view == "options")
-    frame.viewBtn:SetText(view == "list" and "Options" or "List")
+    frame.viewBtn:SetText(view == "options" and "List" or "Options")
+    frame.recentBtn:SetText(view == "recent" and "List" or "Recent")
     if view == "options" then
         for _, cb in ipairs(optionChecks) do cb:SetChecked(ns.db.settings[cb.key]) end
     else
@@ -286,6 +379,28 @@ local function build()
         prev = b
     end
 
+    -- Recent view: people you've grouped with, newest first.
+    local recent = CreateFrame("Frame", nil, frame)
+    recent:SetAllPoints()
+    recent:Hide()
+    frame.recentView = recent
+    for _, h in ipairs({ { "Player", RCOL.name }, { "Where", RCOL.zone }, { "When", RCOL.when }, { "Mark as", RCOL.mark } }) do
+        local fs = recent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        fs:SetPoint("TOPLEFT", 14 + h[2], -58)
+        fs:SetText(h[1])
+    end
+    local rscroll = CreateFrame("ScrollFrame", nil, recent, "UIPanelScrollFrameTemplate")
+    rscroll:SetPoint("TOPLEFT", 12, -74)
+    rscroll:SetPoint("BOTTOMRIGHT", -32, 56)
+    recentChild = CreateFrame("Frame", nil, rscroll)
+    recentChild:SetSize(ROW_W, 1)
+    rscroll:SetScrollChild(recentChild)
+    recentEmpty = recentChild:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+    recentEmpty:SetPoint("TOP", rscroll, "TOP", 0, -40)
+    local clear = button(recent, "Clear", 80, ns.ClearRecent)
+    clear:SetPoint("BOTTOMLEFT", 16, 20)
+    tip(clear, "Clear", "Forget everyone on this list. Marked players stay marked.")
+
     -- Options view: one column per section.
     local opts = CreateFrame("Frame", nil, frame)
     opts:SetAllPoints()
@@ -311,6 +426,10 @@ local function build()
         setView(frame.optionsView:IsShown() and "list" or "options")
     end)
     frame.viewBtn:SetPoint("TOPRIGHT", -290, -28)
+    frame.recentBtn = button(frame, "Recent", 80, function()
+        setView(frame.recentView:IsShown() and "list" or "recent")
+    end)
+    frame.recentBtn:SetPoint("TOPRIGHT", -380, -28)
     local test = button(frame, "Test Mode", 90, function()
         ns.testMode = not ns.testMode
         ns.Print("Test mode " .. (ns.testMode and "on: you now show as a Griefer on your own frames." or "off."))
@@ -335,6 +454,12 @@ function ns.ShowOptions()
     if not frame then build() end
     frame:Show()
     setView("options")
+end
+
+function ns.ShowRecent()
+    if not frame then build() end
+    frame:Show()
+    setView("recent")
 end
 
 ---------------------------------------------------------------------------
@@ -374,7 +499,8 @@ local HELP = {
     "/hon  open the list",
     "/hon add griefer/rude/annoying/kos/helpful [Name-Realm] [note]  (no name = your target)",
     "/hon remove [Name-Realm]  (no name = your target)",
-    "/hon options   /hon list   /hon test   /hon export   /hon import",
+    "/hon recent (people you grouped with)   /hon options   /hon list",
+    "/hon test   /hon export   /hon import",
     "/hon perf (timing)   /hon scan (list tracked unit frames)",
 }
 
@@ -389,6 +515,8 @@ SlashCmdList.HELPORNOT = function(msg)
         ns.ToggleUI()
     elseif cmd == "options" or cmd == "config" or cmd == "settings" then
         ns.ShowOptions()
+    elseif cmd == "recent" then
+        ns.ShowRecent()
     elseif cmd == "add" then
         local cat, target, note = rest:match("^(%S+)%s*(%S*)%s*(.*)$")
         cat = cat and cat:lower()

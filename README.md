@@ -10,9 +10,10 @@ Drop the `HelpOrNot` folder into each client's `Interface/AddOns`. Lists are sav
 ## Use
 - Right-click any player (unit frame, chat name, friends, guild) > Help or Not > Mark player
 - Or target them: `/hon add griefer [note]`
+- Missed them before they left? `/hon recent` (or the Recent button) lists the last 50 people you grouped with, with where and when, and marks them in one click
 - `/hon` opens the list: change category, toggle blocks per player, remove
 - Helpful players get a green HELPFUL stamp, no blocks, and a quiet chat line when they join your group
-- KOS (kill on sight) is for your PvP nemesis list: a purple skull KILL ON SIGHT stamp, a raid warning when their nameplate shows up near you, and a last seen time and zone in their tooltip
+- KOS (kill on sight) is for your PvP nemesis list: a purple skull KILL ON SIGHT stamp, a raid warning when their nameplate shows up near you, a last seen time and zone in their tooltip, and a count of how many times you or your group killed them
 - `/hon options` (or the Options button, or Esc > Options > AddOns > Help or Not) turns any feature on or off: stamps, alerts, KOS sightings, each kind of block, and the right-click menu
 - `/hon test` marks yourself as a Griefer temporarily so you can see the stamps
 

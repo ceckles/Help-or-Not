@@ -77,3 +77,25 @@ ns.On("PLAYER_TARGET_CHANGED", function()
     ns.ShowBanner(entry)
     sound()
 end)
+
+---------------------------------------------------------------------------
+-- KOS kills: a killing blow on a KOS player by you or your group counts.
+-- Needs the combat log. Where a client hides it from addons, nothing counts.
+---------------------------------------------------------------------------
+local CLEU = CombatLogGetCurrentEventInfo
+local PLAYER_FLAG = COMBATLOG_OBJECT_TYPE_PLAYER or 0x400
+
+if CLEU then
+    ns.On("COMBAT_LOG_EVENT_UNFILTERED", function()
+        if not ns.db.settings.kosKills then return end
+        local _, sub, _, _, _, _, _, _, destName, destFlags = CLEU()
+        if ns.IsSecret(sub) or sub ~= "PARTY_KILL" or type(destName) ~= "string" or ns.IsSecret(destName) then return end
+        if type(destFlags) ~= "number" or ns.IsSecret(destFlags) or bit.band(destFlags, PLAYER_FLAG) == 0 then return end
+        local entry = ns.GetName(destName)
+        if not entry or not ns.IsKOS(entry.cat) then return end
+        entry.kills = (entry.kills or 0) + 1
+        entry.lastKill = time()
+        recordSeen(entry)
+        ns.Print(("|c%sKILLED|r %s (%d %s)"):format(ns.ColorHex(entry.cat), ns.DisplayName(entry), entry.kills, entry.kills == 1 and "kill" or "kills"))
+    end)
+end

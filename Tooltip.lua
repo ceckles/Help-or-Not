@@ -11,6 +11,9 @@ local function addLines(tt, unit)
     if entry.seen and ns.IsKOS(entry.cat) then
         tt:AddLine(("Last seen %s%s"):format(date("%Y-%m-%d %H:%M", entry.seen), entry.seenZone and (" in " .. entry.seenZone) or ""), 0.7, 0.7, 0.7)
     end
+    if entry.kills and ns.IsKOS(entry.cat) then
+        tt:AddLine(("Killed %d %s, last %s"):format(entry.kills, entry.kills == 1 and "time" or "times", date("%Y-%m-%d", entry.lastKill)), 0.7, 0.7, 0.7)
+    end
 end
 
 ns.OnLogin(function()

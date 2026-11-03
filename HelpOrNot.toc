@@ -31,4 +31,5 @@ Tooltip.lua
 Alerts.lua
 Menu.lua
 LFG.lua
+Recent.lua
 UI.lua
