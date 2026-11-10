@@ -1,6 +1,7 @@
 # Tags every push to main with the next version, which kicks off the
 # packager release. Patch bump by default; put [minor] or [major] in a
-# commit message to bump that instead, or [skip tag] to not tag at all.
+# commit message to bump that instead, or put [skip tag] in the last
+# commit's subject line to not tag that push.
 name: Tag release
 
 on:
@@ -36,7 +37,9 @@ jobs:
           [ "$last" = "v0.0.0" ] && range="HEAD"
 
           msgs=$(git log --format=%B "$range")
-          if echo "$msgs" | grep -qi '\[skip tag\]'; then
+          # Only the pushed commit's subject can skip, so a skipped push
+          # doesn't keep skipping every push after it.
+          if git log -1 --format=%s | grep -qi '\[skip tag\]'; then
             echo "Skipped by [skip tag]."
             exit 0
           fi
