@@ -1,0 +1,75 @@
+# Tags every push to main with the next version, which kicks off the
+# packager release. Patch bump by default; put [minor] or [major] in a
+# commit message to bump that instead, or [skip tag] to not tag at all.
+name: Tag release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tag-release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Work out the next version
+        id: next
+        run: |
+          if git tag --points-at HEAD | grep -q '^v'; then
+            echo "HEAD is already tagged."
+            exit 0
+          fi
+
+          last=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)
+          last=${last:-v0.0.0}
+          range="${last}..HEAD"
+          [ "$last" = "v0.0.0" ] && range="HEAD"
+
+          msgs=$(git log --format=%B "$range")
+          if echo "$msgs" | grep -qi '\[skip tag\]'; then
+            echo "Skipped by [skip tag]."
+            exit 0
+          fi
+
+          IFS=. read -r major minor patch <<< "${last#v}"
+          if echo "$msgs" | grep -qi '\[major\]'; then
+            major=$((major + 1)); minor=0; patch=0
+          elif echo "$msgs" | grep -qi '\[minor\]'; then
+            minor=$((minor + 1)); patch=0
+          else
+            patch=$((patch + 1))
+          fi
+
+          next="v${major}.${minor}.${patch}"
+          echo "tag=$next" >> "$GITHUB_OUTPUT"
+          echo "last=$last" >> "$GITHUB_OUTPUT"
+          echo "$last -> $next"
+
+      - name: Create and push the tag
+        if: steps.next.outputs.tag != ''
+        env:
+          TAG: ${{ steps.next.outputs.tag }}
+          LAST: ${{ steps.next.outputs.last }}
+        run: |
+          # Tag as whoever pushed, so tags show your name rather than a bot's.
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+          range="${LAST}..HEAD"
+          [ "$LAST" = "v0.0.0" ] && range="HEAD"
+          {
+            echo "Help or Not ${TAG#v}"
+            echo
+            git log --no-merges --format='- %s' "$range"
+          } > "$RUNNER_TEMP/notes.txt"
+          git tag -a "$TAG" -F "$RUNNER_TEMP/notes.txt"
+          git push origin "$TAG"
