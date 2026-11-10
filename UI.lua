@@ -281,7 +281,7 @@ end
 local OPTIONS = {
     { "Display", {
         { "plates", "Nameplates", "Stamp marked players above their nameplates." },
-        { "markedOnly", "Marked only", "Turns friendly player nameplates on for you, then hides every one except the players you've marked. No more Shift+V. Inside dungeons and raids your own nameplate setting is put back, since addons can't touch friendly plates there." },
+        { "markedOnly", "Marked only", "If you keep friendly nameplates off, turns them on for you and hides every one except the players you've marked. No more Shift+V. If you already have friendly nameplates on, nobody is hidden. Inside dungeons and raids your own nameplate setting is put back, since addons can't touch friendly plates there." },
         { "frames", "Unit frames", "Tint and border marked players on party, raid, target and focus frames (EllesmereUI or Blizzard)." },
         { "tooltip", "Tooltip", "Add a DO NOT HELP, KILL ON SIGHT or Helpful line to their tooltip." },
         { "lfg", "Group Finder", "Tag marked leaders and applicants. Takes effect after /reload if turned on." },

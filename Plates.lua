@@ -8,7 +8,8 @@ local _, ns = ...
 -- "Marked only" mode: turns friendly player nameplates on outside PvE
 -- instances, then fades every friendly player plate to invisible unless
 -- that player is on your list. Result: you only see plates over people
--- you've marked.
+-- you've marked. If you already had friendly plates on, nobody is hidden:
+-- you asked to see them, so you just get the stamps.
 
 local stamps = {}
 
@@ -86,7 +87,7 @@ local function update(unit)
         s:Hide()
     end
 
-    setHidden(plate, settings.markedOnly and not entry and isFriendlyPlayer(unit))
+    setHidden(plate, ns.HidesUnmarked() and not entry and isFriendlyPlayer(unit))
 end
 
 function ns.RefreshPlates()
@@ -130,6 +131,12 @@ local function inPvEInstance()
     return inside and (kind == "party" or kind == "raid" or kind == "scenario")
 end
 
+-- savedShowFriends is your own setting from before Marked only took over.
+function ns.HidesUnmarked()
+    local st = ns.db.settings
+    return st.markedOnly and st.savedShowFriends == "0"
+end
+
 local function setClickThrough(on)
     if C_NamePlate and C_NamePlate.SetNamePlateFriendlyClickThrough then
         pcall(C_NamePlate.SetNamePlateFriendlyClickThrough, on)
@@ -159,7 +166,7 @@ function ns.ApplyPlateMode()
     else
         cvarSet("nameplateShowFriends", "1")
         -- Invisible plates shouldn't steal your clicks.
-        setClickThrough(true)
+        setClickThrough(ns.HidesUnmarked())
     end
 end
 
