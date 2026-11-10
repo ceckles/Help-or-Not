@@ -1,5 +1,8 @@
 # Help or Not
 
+## 1.2.2
+- Release notes now come from a written changelog. No gameplay changes.
+
 ## 1.2.1
 - Marked only keeps friendly nameplates visible for players who already had them on. Marked players still get their stamps.
 - New broker plugin: add "Help or Not" to an EllesmereUI data bar (Broker Plugin block), Titan Panel or similar. Shows marked players in your group; left-click opens your list, right-click opens Recent.
