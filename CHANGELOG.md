@@ -1,5 +1,10 @@
 # Help or Not
 
+## 1.3.0
+- Fixed: Marked only never turned friendly nameplates on in Retail or WoW Forever, so marked players had no stamp over their heads. It now uses the nameplate setting those clients actually have.
+- New minimap button: left-click opens your list, right-click opens Options, drag to move it. Can be turned off in Options.
+- Players from the other faction now have Whisper, Trade, Duel and Ignore greyed out (and Invite, where you can't group across factions), since those can't happen anyway.
+
 ## 1.2.2
 - Release notes now come from a written changelog. No gameplay changes.
 

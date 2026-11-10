@@ -90,7 +90,14 @@ local function createRow(i)
         cb:SetSize(22, 22)
         cb:SetPoint("LEFT", COL.flags + (j - 1) * COL.flagStep + 6, 0)
         cb:SetScript("OnClick", function(self) ns.SetFlag(r.key, flag, self:GetChecked()) end)
-        tip(cb, ns.FLAG_LABELS[flag], ns.FLAG_TIPS[flag])
+        if cb.SetMotionScriptsWhileDisabled then cb:SetMotionScriptsWhileDisabled(true) end
+        tip(cb, ns.FLAG_LABELS[flag], function()
+            local e = ns.db.players[r.key]
+            if e and not ns.FlagApplies(e, flag) then
+                return ("%s is %s. You can't reach each other this way, so there's nothing to block."):format(ns.DisplayName(e), e.faction)
+            end
+            return ns.FLAG_TIPS[flag]
+        end)
         r.checks[flag] = cb
     end
 
@@ -150,7 +157,12 @@ local function refreshList()
         r.name:SetText(ns.DisplayName(e))
         if cc then r.name:SetTextColor(cc.r, cc.g, cc.b) else r.name:SetTextColor(1, 1, 1) end
         r.cat:SetText(ns.CatLabel(e.cat, true))
-        for flag, cbx in pairs(r.checks) do cbx:SetChecked(e.flags[flag] and true or false) end
+        for flag, cbx in pairs(r.checks) do
+            local applies = ns.FlagApplies(e, flag)
+            cbx:SetChecked(applies and e.flags[flag] and true or false)
+            cbx:SetEnabled(applies)
+            cbx:SetAlpha(applies and 1 or 0.25)
+        end
         r.note:SetText(e.note or "")
         r:Show()
     end
@@ -204,7 +216,7 @@ local function createRecentRow(i)
         b:SetText(ns.CatLabel(c, true))
         b:SetScript("OnClick", function()
             local e = r.entry
-            if e then ns.PromptAdd(e.name, e.realm, c, e.class) end
+            if e then ns.PromptAdd(e.name, e.realm, c, e.class, e.faction) end
         end)
         tip(b, "Mark as " .. ns.CatLabel(c), "Opens the note prompt. Already marked players just change category.")
     end
@@ -306,6 +318,7 @@ local OPTIONS = {
     { "Other", {
         { "menu", "Right-click menu", "Add Help or Not to player right-click menus." },
         { "recent", "Recent players", "Remember the last 50 people you grouped with, so you can mark them after they leave." },
+        { "minimap", "Minimap button", "Show a Help or Not button on the minimap. Left-click opens your list, right-click opens these options, drag to move it." },
     } },
 }
 
@@ -524,7 +537,7 @@ SlashCmdList.HELPORNOT = function(msg)
         if target == "" then
             if not ns.UnitKey("target") then ns.Print("Target a player or give a name.") return end
             local n, r = UnitName("target")
-            ns.Add(n, r, cat, note, ns.UnitClassToken("target"))
+            ns.Add(n, r, cat, note, ns.UnitClassToken("target"), ns.UnitFaction("target"))
         else
             ns.Add(target, nil, cat, note)
         end

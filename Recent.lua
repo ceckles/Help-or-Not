@@ -22,7 +22,7 @@ local function record(unit, key)
     for i = #list, 1, -1 do
         if list[i].key == key then table.remove(list, i) end
     end
-    table.insert(list, 1, { key = key, name = n, realm = r, class = ns.UnitClassToken(unit), zone = where(), t = time() })
+    table.insert(list, 1, { key = key, name = n, realm = r, class = ns.UnitClassToken(unit), faction = ns.UnitFaction(unit), zone = where(), t = time() })
     for i = #list, MAX + 1, -1 do list[i] = nil end
 end
 

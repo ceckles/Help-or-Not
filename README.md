@@ -16,6 +16,7 @@ Drop the `HelpOrNot` folder into each client's `Interface/AddOns`. Lists are sav
 - KOS (kill on sight) is for your PvP nemesis list: a purple skull KILL ON SIGHT stamp, a raid warning when their nameplate shows up near you, a last seen time and zone in their tooltip, and a count of how many times you or your group killed them
 - `/hon options` (or the Options button, or Esc > Options > AddOns > Help or Not) turns any feature on or off: stamps, alerts, KOS sightings, each kind of block, and the right-click menu
 - Info bars: add the "Help or Not" broker plugin to an EllesmereUI data bar (Broker Plugin block), Titan Panel or similar. It shows who in your group is marked; left-click opens your list, right-click opens Recent
+- Minimap button: left-click opens your list, right-click opens Options, drag to move it
 - `/hon test` marks yourself as a Griefer temporarily so you can see the stamps
 
 ## Limits

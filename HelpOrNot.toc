@@ -34,3 +34,4 @@ LFG.lua
 Recent.lua
 UI.lua
 Broker.lua
+Minimap.lua

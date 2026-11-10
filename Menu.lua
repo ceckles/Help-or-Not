@@ -16,28 +16,28 @@ StaticPopupDialogs["HELPORNOT_ADD"] = {
     end,
     OnAccept = function(self, data)
         local eb = getEditBox(self)
-        ns.Add(data.name, data.realm, data.cat, eb and eb:GetText() or "", data.class)
+        ns.Add(data.name, data.realm, data.cat, eb and eb:GetText() or "", data.class, data.faction)
     end,
     EditBoxOnEnterPressed = function(self, data)
         local p = self:GetParent()
         data = data or p.data
-        if data then ns.Add(data.name, data.realm, data.cat, self:GetText(), data.class) end
+        if data then ns.Add(data.name, data.realm, data.cat, self:GetText(), data.class, data.faction) end
         p:Hide()
     end,
     EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
     timeout = 0, whileDead = 1, hideOnEscape = 1, preferredIndex = 3,
 }
 
-function ns.PromptAdd(name, realm, cat, class)
+function ns.PromptAdd(name, realm, cat, class, faction)
     local shown = realm and realm ~= "" and (name .. "-" .. realm) or name
-    StaticPopup_Show("HELPORNOT_ADD", shown, ns.CatLabel(cat, true), { name = name, realm = realm, cat = cat, class = class })
+    StaticPopup_Show("HELPORNOT_ADD", shown, ns.CatLabel(cat, true), { name = name, realm = realm, cat = cat, class = class, faction = faction })
 end
 
 function ns.PromptAddUnit(unit, cat)
     local key = ns.UnitKey(unit)
     if not key then ns.Print("Target a player first.") return end
     local name, realm = UnitName(unit)
-    ns.PromptAdd(name, realm, cat, ns.UnitClassToken(unit))
+    ns.PromptAdd(name, realm, cat, ns.UnitClassToken(unit), ns.UnitFaction(unit))
 end
 
 ---------------------------------------------------------------------------
@@ -54,11 +54,12 @@ local TAGS = {
 
 local function build(_, root, ctx)
     if not ctx or not ns.db.settings.menu then return end
-    local name, realm, class = ctx.name, ctx.server, nil
+    local name, realm, class, faction = ctx.name, ctx.server, nil, nil
     if ctx.unit and not ns.IsSecret(ctx.unit) then
         if not ns.UnitKey(ctx.unit) then return end
         name, realm = UnitName(ctx.unit)
         class = ns.UnitClassToken(ctx.unit)
+        faction = ns.UnitFaction(ctx.unit)
     end
     local key = ns.Key(name, realm)
     if not key or key == ns.PlayerKey() then return end
@@ -75,7 +76,7 @@ local function build(_, root, ctx)
     else
         local sub = root:CreateButton("Mark player")
         for _, c in ipairs(ns.CATEGORY_ORDER) do
-            sub:CreateButton(ns.CatLabel(c, true), function() ns.PromptAdd(name, realm, c, class) end)
+            sub:CreateButton(ns.CatLabel(c, true), function() ns.PromptAdd(name, realm, c, class, faction) end)
         end
     end
 end

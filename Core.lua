@@ -46,7 +46,7 @@ local SETTINGS_DEFAULTS = {
     showHelpful = true, pulse = true,
     groupAlert = true, targetAlert = true, kosAlert = true, kosKills = true, sound = true, notices = true,
     blockChat = true, blockWhispers = true, blockTrades = true, blockInvites = true, blockDuels = true,
-    menu = true, recent = true,
+    menu = true, recent = true, minimap = true,
 }
 
 ns.TEST_ENTRY = { name = "You", realm = "", cat = "griefer", note = "Test mode", flags = {} }
@@ -166,6 +166,28 @@ function ns.UnitClassToken(unit)
     if ok and type(token) == "string" and not ns.IsSecret(token) then return token end
 end
 
+function ns.UnitFaction(unit)
+    local ok, faction = pcall(UnitFactionGroup, unit)
+    if ok and (faction == "Horde" or faction == "Alliance") and not ns.IsSecret(faction) then return faction end
+end
+
+---------------------------------------------------------------------------
+-- Other faction: you can't whisper, trade, duel or ignore them, and only
+-- clients with cross-faction groups let you invite them. Those blocks are
+-- moot, so the list greys them out.
+---------------------------------------------------------------------------
+local crossFactionGroups = C_PartyInfo and C_PartyInfo.IsCrossFactionParty ~= nil
+
+function ns.OtherFaction(e)
+    local mine = ns.UnitFaction("player")
+    return e and e.faction and mine and e.faction ~= mine or false
+end
+
+function ns.FlagApplies(e, flag)
+    if not ns.OtherFaction(e) or flag == "mute" then return true end
+    return flag == "invite" and crossFactionGroups
+end
+
 function ns.Get(key)
     return key and ns.db.players[key] or nil
 end
@@ -174,7 +196,10 @@ function ns.GetUnit(unit)
     local key = ns.UnitKey(unit)
     if not key then return nil end
     if ns.testMode and key == ns.PlayerKey() then return ns.TEST_ENTRY, key end
-    return ns.db.players[key], key
+    local e = ns.db.players[key]
+    -- Entries marked before faction was recorded pick it up when seen.
+    if e and not e.faction then e.faction = ns.UnitFaction(unit) end
+    return e, key
 end
 
 function ns.GetName(fullName)
@@ -200,7 +225,7 @@ local function DelIgnoreName(n) if FL and FL.DelIgnore then return FL.DelIgnore(
 function ns.SyncIgnore(e)
     if not e or e == ns.TEST_ENTRY then return end
     local n = ns.DisplayName(e)
-    if e.flags.ignore then
+    if e.flags.ignore and ns.FlagApplies(e, "ignore") then
         if not IsIgnoredName(n) then
             AddIgnoreName(n)
             e.ignoredByUs = true
@@ -237,7 +262,7 @@ end
 ---------------------------------------------------------------------------
 -- List operations
 ---------------------------------------------------------------------------
-function ns.Add(name, realm, cat, note, class)
+function ns.Add(name, realm, cat, note, class, faction)
     local key, n, r = ns.Key(name, realm)
     if not key then ns.Print("Couldn't resolve that player's name.") return end
     if key == ns.PlayerKey() then ns.Print("You can't flag yourself.") return end
@@ -250,10 +275,14 @@ function ns.Add(name, realm, cat, note, class)
     else
         local flags = {}
         for k, v in pairs(ns.DEFAULT_FLAGS[cat]) do flags[k] = v end
-        e = { name = n, realm = r, cat = cat, note = note or "", added = time(), flags = flags }
+        e = { name = n, realm = r, cat = cat, note = note or "", added = time(), flags = flags, faction = faction }
+        for k in pairs(flags) do
+            if not ns.FlagApplies(e, k) then flags[k] = false end
+        end
         ns.db.players[key] = e
     end
     if class then e.class = class end
+    if faction then e.faction = faction end
 
     local t = ns.perf and debugprofilestop()
     ns.SyncIgnore(e)

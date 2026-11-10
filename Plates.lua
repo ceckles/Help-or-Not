@@ -22,6 +22,20 @@ local function cvarSet(name, value)
     return SetCVar(name, value)
 end
 
+-- Newer clients renamed nameplateShowFriends to nameplateShowFriendlyPlayers.
+-- Reading a name the client doesn't register gives nil, so read whichever one
+-- answers and write both (the dead one is a no-op).
+local FRIEND_CVARS = { "nameplateShowFriendlyPlayers", "nameplateShowFriends" }
+local function getShowFriends()
+    for _, name in ipairs(FRIEND_CVARS) do
+        local ok, v = pcall(cvarGet, name)
+        if ok and v ~= nil then return tostring(v) end
+    end
+end
+local function setShowFriends(value)
+    for _, name in ipairs(FRIEND_CVARS) do pcall(cvarSet, name, value) end
+end
+
 local function safeBool(fn, ...)
     local ok, v = pcall(fn, ...)
     if not ok or ns.IsSecret(v) then return nil end
@@ -148,23 +162,31 @@ function ns.ApplyPlateMode()
     pendingCVar = false
     local st = ns.db.settings
 
+    -- Up to 1.2.2 only the old CVar name was read, so on clients that renamed
+    -- it the saved setting is a guess ("0"). Forget it and read it again.
+    if not st.friendCVarFixed then
+        local ok, old = pcall(cvarGet, "nameplateShowFriends")
+        if not ok or old == nil then st.savedShowFriends = nil end
+        st.friendCVarFixed = true
+    end
+
     if not st.markedOnly then
         if st.savedShowFriends ~= nil then
-            cvarSet("nameplateShowFriends", st.savedShowFriends)
+            setShowFriends(st.savedShowFriends)
             st.savedShowFriends = nil
             setClickThrough(false)
         end
         return
     end
 
-    if st.savedShowFriends == nil then st.savedShowFriends = cvarGet("nameplateShowFriends") or "0" end
+    if st.savedShowFriends == nil then st.savedShowFriends = getShowFriends() or "0" end
 
     if inPvEInstance() then
         -- Addons can't touch friendly plates in here, so put your own setting back.
-        cvarSet("nameplateShowFriends", st.savedShowFriends)
+        setShowFriends(st.savedShowFriends)
         setClickThrough(false)
     else
-        cvarSet("nameplateShowFriends", "1")
+        setShowFriends("1")
         -- Invisible plates shouldn't steal your clicks.
         setClickThrough(ns.HidesUnmarked())
     end
